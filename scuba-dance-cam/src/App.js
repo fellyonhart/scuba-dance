@@ -12,10 +12,9 @@ const VIDEO_WIDTH = 640;
 const VIDEO_HEIGHT = 480;
 const GIF_SIZE = 350;
 
-// MAP Kerangka Jari Tangan Saja
 const HAND_ONLY_CONNECTIONS = [
-  [15, 17], [15, 19], [15, 21], [17, 19], // Tangan Kiri
-  [16, 18], [16, 20], [16, 22], [18, 20]  // Tangan Kanan
+  [15, 17], [15, 19], [15, 21], [17, 19],
+  [16, 18], [16, 20], [16, 22], [18, 20] 
 ];
 
 function App() {
@@ -42,7 +41,6 @@ function App() {
     if (results.poseLandmarks && results.poseLandmarks.length > 0) {
       const landmarks = results.poseLandmarks;
       
-      // DRAWING KHUSUS TANGAN
       drawConnectors(canvasCtx, landmarks, HAND_ONLY_CONNECTIONS, { color: '#00FF00', lineWidth: 6 });
       const handPointsOnly = [15, 16, 17, 18, 19, 20, 21, 22].map(index => landmarks[index]);
       drawLandmarks(canvasCtx, handPointsOnly, { color: '#FF0000', lineWidth: 3, radius: 8 });
@@ -50,9 +48,8 @@ function App() {
       const leftWrist = landmarks[15];
       const rightWrist = landmarks[16];
 
-      // LOGIKA KETAT: Visibilitas > 80% dan tangan harus beneran masuk ke layar (Y < 0.95)
-      const isLeftHandVisible = leftWrist.visibility > 0.8 && leftWrist.y < 0.95 && leftWrist.y > 0;
-      const isRightHandVisible = rightWrist.visibility > 0.8 && rightWrist.y < 0.95 && rightWrist.y > 0;
+      const isLeftHandVisible = leftWrist.visibility > 0.9 && leftWrist.y < 0.95 && leftWrist.y > 0;
+      const isRightHandVisible = rightWrist.visibility > 0.9 && rightWrist.y < 0.95 && rightWrist.y > 0;
       const isAnyHandVisible = isLeftHandVisible || isRightHandVisible;
 
       if (isAnyHandVisible && !handDetectedRef.current) {
@@ -82,7 +79,6 @@ function App() {
         setInstruction("TUNGGUIN TANGAN MU MUNCUL DI KAMERA...");
         setCatPositions([]);
         
-        // PAUSE AUDIO (Tanpa di-reset ke 0)
         if (audioRef.current) {
           audioRef.current.pause();
         }
@@ -95,7 +91,6 @@ function App() {
         setInstruction("TUNGGUIN TANGAN MU MUNCUL DI KAMERA...");
         setCatPositions([]);
         
-        // PAUSE AUDIO (Tanpa di-reset ke 0)
         if (audioRef.current) {
           audioRef.current.pause();
         }
@@ -135,11 +130,9 @@ function App() {
 
     return () => {
       if (camera) camera.stop();
-      // eslint-disable-next-line react-hooks/exhaustive-deps
       const audio = audioRef.current;
       if (audio) {
         audio.pause();
-        // Disini juga biarin aja nggak usah di-reset pas keluar web
       }
     };
   }, [onResults]);

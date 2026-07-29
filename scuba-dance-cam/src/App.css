@@ -1,9 +1,9 @@
 /* src/App.css */
 body {
   margin: 0;
-  background-color: #1a1a1a; /* Warna background gelap */
+  background-color: #1a1a1a;
   color: white;
-  font-family: 'Courier New', Courier, monospace; /* Font gaya terminal/coding */
+  font-family: 'Courier New', Courier, monospace; 
   display: flex;
   justify-content: center;
   align-items: center;
@@ -32,9 +32,8 @@ body {
   transition: all 0.3s ease;
 }
 
-/* Style kalau tangan kedetek */
 .header.detected {
-  color: #00ff00; /* Hijau neon */
+  color: #00ff00; 
   border-color: #00ff00;
   box-shadow: 0 0 15px rgba(0, 255, 0, 0.5);
   transform: scale(1.05);
@@ -47,7 +46,6 @@ body {
   overflow: hidden;
   box-shadow: 0 10px 30px rgba(0,0,0,0.7);
   background-color: black;
-  /* Pastikan rasio video terjaga */
   aspect-ratio: 640 / 480; 
 }
 
@@ -55,41 +53,32 @@ body {
   width: 100%;
   height: 100%;
   display: block;
-  /* Kalau kamera lu kebalik (mirror), aktifin baris di bawah: */
-  /* transform: scaleX(-1); */
 }
-
-.scuba-cat {
-  position: absolute;
-  height: auto;
-  pointer-events: none; /* Biar ga ganggu klik mouse */
-  z-index: 10;
-  /* Transisi halus pas muncul/hilang */
-  transition: opacity 0.3s ease; 
-}
-
-/* --- Bagian BARU: Styling Footer Feyy --- */
-.feyy-footer {
-  margin-top: 25px; /* Jarak di bawah kamera */
-  font-size: 1.1rem;
-  font-weight: bold;
-  color: #aaa; /* Warna abu-abu terang */
-  letter-spacing: 2px; /* Jarak antar huruf */
-  text-transform: uppercase; /* Huruf besar semua */
-  
-  /* Efek sedikit glow biar keren */
-  text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
-}
-
-/* Update bagian .scuba-cat di App.css lu */
 
 .scuba-cat {
   position: absolute;
   height: auto;
   pointer-events: none;
   z-index: 10;
+  transition: opacity 0.3s ease; 
+}
+
+.feyy-footer {
+  margin-top: 25px;
+  font-size: 1.1rem;
+  font-weight: bold;
+  color: #aaa;
+  letter-spacing: 2px;
+  text-transform: uppercase; 
   
-  /* Animasi muncul mendadak (pop up) */
+  text-shadow: 0 0 5px rgba(255, 255, 255, 0.3);
+}
+.scuba-cat {
+  position: absolute;
+  height: auto;
+  pointer-events: none;
+  z-index: 10;
+  
   animation: popIn 0.3s cubic-bezier(0.175, 0.885, 0.32, 1.275);
 }
 
@@ -98,14 +87,11 @@ body {
   100% { transform: scale(1) rotate(var(--rotation)); opacity: 1; }
 }
 
-/* Biar Kicau Mania-nya bener-bener nutupin layar kalau banyak */
 .video-container {
   background-color: #000;
   border: 4px solid #333;
 }
 
-/* Pastiin canvas-nya gak nge-mirror kalau lu mau gerakan aslinya pas */
 .output_canvas {
-  transform: scaleX(-1); /* Mirror biar kayak cermin */
+  transform: scaleX(-1); 
 }
-/* ------------------------------------------ */
