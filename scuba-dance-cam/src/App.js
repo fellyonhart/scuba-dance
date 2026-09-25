@@ -1,6 +1,6 @@
 // src/App.js
 import React, { useRef, useEffect, useState, useCallback } from "react";
-import { Pose } from "@mediapipe/pose";
+import { Hands, HAND_CONNECTIONS } from "@mediapipe/hands";
 import * as cam from "@mediapipe/camera_utils";
 import { drawConnectors, drawLandmarks } from "@mediapipe/drawing_utils";
 import "./App.css";
@@ -12,17 +12,8 @@ const VIDEO_WIDTH = 640;
 const VIDEO_HEIGHT = 480;
 const GIF_SIZE = 350;
 const MIN_FRAME_INTERVAL = 50;
-
-const HAND_ONLY_CONNECTIONS = [
-  [15, 17],
-  [15, 19],
-  [15, 21],
-  [17, 19],
-  [16, 18],
-  [16, 20],
-  [16, 22],
-  [18, 20]
-];
+const HAND_DETECT_FRAMES = 3;
+const HAND_LOST_FRAMES = 8;
 
 function App() {
   const videoRef = useRef(null);
@@ -36,6 +27,8 @@ function App() {
   const [catPositions, setCatPositions] = useState([]);
 
   const handDetectedRef = useRef(false);
+  const visibleFramesRef = useRef(0);
+  const missingFramesRef = useRef(0);
   const processingFrameRef = useRef(false);
   const lastFrameTimeRef = useRef(0);
 
@@ -55,72 +48,68 @@ function App() {
       canvasElement.height
     );
 
-    if (results.poseLandmarks && results.poseLandmarks.length > 0) {
-      const landmarks = results.poseLandmarks;
-
-      drawConnectors(canvasCtx, landmarks, HAND_ONLY_CONNECTIONS, {
+    const detectedHands = results.multiHandLandmarks || [];
+    detectedHands.forEach((landmarks) => {
+      drawConnectors(canvasCtx, landmarks, HAND_CONNECTIONS, {
         color: "#00FF00",
         lineWidth: 2
       });
-      const handPointsOnly = [15, 16, 17, 18, 19, 20, 21, 22].map(
-        (index) => landmarks[index]
-      );
-      drawLandmarks(canvasCtx, handPointsOnly, {
+      drawLandmarks(canvasCtx, landmarks, {
         color: "#FF0000",
         lineWidth: 1,
-        radius: 4
+        radius: 3
       });
+    });
 
-      const leftWrist = landmarks[15];
-      const rightWrist = landmarks[16];
+    const isAnyHandVisible = detectedHands.some((landmarks) => {
+      const wrist = landmarks[0];
+      return (
+        wrist && wrist.x >= 0 && wrist.x <= 1 && wrist.y >= 0 && wrist.y <= 1
+      );
+    });
 
-      const isLeftHandVisible =
-        leftWrist.visibility > 0.9 && leftWrist.y < 0.95 && leftWrist.y > 0;
-      const isRightHandVisible =
-        rightWrist.visibility > 0.9 && rightWrist.y < 0.95 && rightWrist.y > 0;
-      const isAnyHandVisible = isLeftHandVisible || isRightHandVisible;
-
-      if (isAnyHandVisible && !handDetectedRef.current) {
-        console.log("🎉 TANGAN TERDETEKSI - KICAU MANIA ON!");
-        handDetectedRef.current = true;
-        setDanceActive(true);
-        setInstruction("✨ KICAU MANIA AKTIF! ✨");
-
-        const randomPositions = Array.from({ length: 5 }).map(() => ({
-          top: Math.random() * (VIDEO_HEIGHT - GIF_SIZE),
-          left: Math.random() * (VIDEO_WIDTH - GIF_SIZE),
-          rotate: Math.floor(Math.random() * 60) - 30
-        }));
-        setCatPositions(randomPositions);
-
-        // RESUME AUDIO
-        if (audioRef.current) {
-          audioRef.current.play().catch((err) => {
-            console.warn("⚠️ Audio autoplay blocked - klik layar dulu!", err);
-          });
-        }
-      } else if (!isAnyHandVisible && handDetectedRef.current) {
-        console.log("❌ TANGAN HILANG - KICAU MANIA OFF");
-        handDetectedRef.current = false;
-        setDanceActive(false);
-        setInstruction("TUNGGUIN TANGAN MU MUNCUL DI KAMERA...");
-        setCatPositions([]);
-
-        if (audioRef.current) {
-          audioRef.current.pause();
-        }
-      }
+    if (isAnyHandVisible) {
+      visibleFramesRef.current += 1;
+      missingFramesRef.current = 0;
     } else {
-      if (handDetectedRef.current) {
-        console.log("🚫 Tidak ada orang di kamera");
-        handDetectedRef.current = false;
-        setDanceActive(false);
-        setInstruction("TUNGGUIN TANGAN MU MUNCUL DI KAMERA...");
-        setCatPositions([]);
+      missingFramesRef.current += 1;
+      visibleFramesRef.current = 0;
+    }
 
-        if (audioRef.current) {
-          audioRef.current.pause();
-        }
+    if (
+      visibleFramesRef.current >= HAND_DETECT_FRAMES &&
+      !handDetectedRef.current
+    ) {
+      console.log("🎉 TANGAN TERDETEKSI - KICAU MANIA ON!");
+      handDetectedRef.current = true;
+      setDanceActive(true);
+      setInstruction("✨ KICAU MANIA AKTIF! ✨");
+
+      const randomPositions = Array.from({ length: 5 }).map(() => ({
+        top: Math.random() * (VIDEO_HEIGHT - GIF_SIZE),
+        left: Math.random() * (VIDEO_WIDTH - GIF_SIZE),
+        rotate: Math.floor(Math.random() * 60) - 30
+      }));
+      setCatPositions(randomPositions);
+
+      // RESUME AUDIO
+      if (audioRef.current) {
+        audioRef.current.play().catch((err) => {
+          console.warn("⚠️ Audio autoplay blocked - klik layar dulu!", err);
+        });
+      }
+    } else if (
+      missingFramesRef.current >= HAND_LOST_FRAMES &&
+      handDetectedRef.current
+    ) {
+      console.log("❌ TANGAN HILANG - KICAU MANIA OFF");
+      handDetectedRef.current = false;
+      setDanceActive(false);
+      setInstruction("TUNGGUIN TANGAN MU MUNCUL DI KAMERA...");
+      setCatPositions([]);
+
+      if (audioRef.current) {
+        audioRef.current.pause();
       }
     }
     canvasCtx.restore();
@@ -128,19 +117,21 @@ function App() {
 
   // 3. SETUP KAMERA & MEDIA PIPE
   useEffect(() => {
-    const pose = new Pose({
+    const hands = new Hands({
       locateFile: (file) =>
-        `https://cdn.jsdelivr.net/npm/@mediapipe/pose/${file}`
+        `https://cdn.jsdelivr.net/npm/@mediapipe/hands/${file}`
     });
 
-    pose.setOptions({
-      modelComplexity: 0,
+    hands.setOptions({
+      maxNumHands: 2,
+      modelComplexity: 1,
+      selfieMode: false,
       smoothLandmarks: true,
-      minDetectionConfidence: 0.5,
-      minTrackingConfidence: 0.5
+      minDetectionConfidence: 0.65,
+      minTrackingConfidence: 0.65
     });
 
-    pose.onResults(onResults);
+    hands.onResults(onResults);
 
     let camera = null;
     if (videoRef.current) {
@@ -157,7 +148,7 @@ function App() {
           processingFrameRef.current = true;
           lastFrameTimeRef.current = now;
           try {
-            await pose.send({ image: videoRef.current });
+            await hands.send({ image: videoRef.current });
           } finally {
             processingFrameRef.current = false;
           }
@@ -171,6 +162,7 @@ function App() {
     const audio = audioRef.current;
     return () => {
       if (camera) camera.stop();
+      hands.close();
       if (audio) {
         audio.pause();
       }
